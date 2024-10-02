@@ -1014,3 +1014,35 @@ msgstr ""
 "Language: \n"
 ''')
     assert pofile.read_po(buf).locale is None
+
+def test_issue_1134():
+    # creating multiple copies of IO objects so function calls do not effect later calls.
+    buf = StringIO('''
+msgid "foo"
+"''')
+
+    # Catalog is created with warning, no abort
+    output = pofile.read_po(buf)
+    assert isinstance(output, Catalog)
+    assert len(output._messages) == 1
+    assert output.messages["foo"].string == ''
+    
+    buf = StringIO('''
+msgid "foo"
+"''')
+
+    # Catalog not created, aborted with PoFileError
+    with pytest.raises(pofile.PoFileError) as excinfo:
+        pofile.read_po(buf, abort_invalid=True)
+    assert str(excinfo.value) == "missing msgstr for msgid 'foo' on 1"
+
+    buf = StringIO('''
+msgid "foo"
+msgid_plural "foos"
+"''')
+
+    # Catalog not created, aborted with PoFileError
+    with pytest.raises(pofile.PoFileError) as excinfo:
+        pofile.read_po(buf, abort_invalid=True)
+    assert str(excinfo.value) == "missing msgstr for msgid 'foo' on 1"
+    
